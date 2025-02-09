@@ -390,7 +390,7 @@ static const struct PoFUsbDescriptor usb_pof_cfg_descr = {
         },
 };
 
-static const struct PoFUsbDescriptorX360 usb_pof_cfg_descr_x360 = {
+static const struct PoFUsbDescriptorXbox360 usb_pof_cfg_descr_x360 = {
     .config =
         {
             .bLength = sizeof(struct usb_config_descriptor),
@@ -416,19 +416,17 @@ static const struct PoFUsbDescriptorX360 usb_pof_cfg_descr_x360 = {
         },
     .xbox_desc =
         {
-            {
-                .bLength = sizeof(struct usb_xbox_intf_descriptor),
-                .bDescriptorType = 0x21,
-                .reserved = {0x10, 0x01},
-                .subtype = 0x24,
-                .reserved2 = 0x25,
-                .bEndpointAddressIn = POF_USB_EP_IN,
-                .bMaxDataSizeIn = 0x14,
-                .reserved3 = {0x03, 0x03, 0x03, 0x04, 0x13},
-                .bEndpointAddressOut = POF_USB_EP_OUT,
-                .bMaxDataSizeOut = 0x08,
-                .reserved4 = {0x03, 0x03},
-            }
+            .bLength = sizeof(struct usb_xbox_intf_descriptor),
+            .bDescriptorType = 0x21,
+            .reserved = {0x10, 0x01},
+            .subtype = 0x24,
+            .reserved2 = 0x25,
+            .bEndpointAddressIn = POF_USB_EP_IN,
+            .bMaxDataSizeIn = 0x14,
+            .reserved3 = {0x03, 0x03, 0x03, 0x04, 0x13},
+            .bEndpointAddressOut = POF_USB_EP_OUT,
+            .bMaxDataSizeOut = 0x08,
+            .reserved4 = {0x03, 0x03},
         },
     .ep_in =
         {
@@ -574,17 +572,17 @@ static usbd_respond
            (USB_REQ_INTERFACE | USB_REQ_STANDARD) &&
        req->wIndex == 0 && req->bRequest == USB_STD_GET_DESCRIPTOR) {
         switch(wValueH) {
-        case USB_DTYPE_HID:
-            dev->status.data_ptr = (uint8_t*)&(usb_pof_cfg_descr.hid_desc);
-            dev->status.data_count = sizeof(usb_pof_cfg_descr.hid_desc);
-            return usbd_ack;
-        case USB_DTYPE_HID_REPORT:
-            dev->status.data_ptr = (uint8_t*)hid_report_desc;
-            dev->status.data_count = sizeof(hid_report_desc);
-            return usbd_ack;
+        // case USB_DTYPE_HID:
+        //     dev->status.data_ptr = (uint8_t*)&(usb_pof_cfg_descr.hid_desc);
+        //     dev->status.data_count = sizeof(usb_pof_cfg_descr.hid_desc);
+        //     return usbd_ack;
+        // case USB_DTYPE_HID_REPORT:
+        //     dev->status.data_ptr = (uint8_t*)hid_report_desc;
+        //     dev->status.data_count = sizeof(hid_report_desc);
+        //     return usbd_ack;
         case USB_DTYPE_STRING:
             if (wValueL == 4) {
-                dev->status.data_ptr = (uint8_t*)dev_security_desc;
+                dev->status.data_ptr = (uint8_t*)&dev_security_desc;
                 dev->status.data_count = sizeof(dev_security_desc);
                 return usbd_ack;
             }
@@ -606,12 +604,12 @@ PoFUsb* pof_usb_start(VirtualPortal* virtual_portal) {
     pof_usb->usb.deinit = pof_usb_deinit;
     pof_usb->usb.wakeup = pof_usb_wakeup;
     pof_usb->usb.suspend = pof_usb_suspend;
-    // pof_usb->usb.dev_descr = (struct usb_device_descriptor*)&usb_pof_dev_descr;
+    pof_usb->usb.dev_descr = (struct usb_device_descriptor*)&usb_pof_dev_descr;
     pof_usb->usb.dev_descr = (struct usb_device_descriptor*)&usb_pof_dev_descr_xbox_360;
     pof_usb->usb.str_manuf_descr = (void*)&dev_manuf_desc;
     pof_usb->usb.str_prod_descr = (void*)&dev_product_desc;
     pof_usb->usb.str_serial_descr = NULL;
-    // pof_usb->usb.cfg_descr = (void*)&usb_pof_cfg_descr;
+    pof_usb->usb.cfg_descr = (void*)&usb_pof_cfg_descr;
     pof_usb->usb.cfg_descr = (void*)&usb_pof_cfg_descr_x360;
 
     if(!furi_hal_usb_set_config(&pof_usb->usb, pof_usb)) {
