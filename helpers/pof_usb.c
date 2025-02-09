@@ -8,9 +8,15 @@
 
 #define POF_USB_VID (0x1430)
 #define POF_USB_PID (0x0150)
+#define POF_USB_PID_X360 (0x1F17)
 
 #define POF_USB_EP_IN  (0x81)
 #define POF_USB_EP_OUT (0x02)
+#define POF_USB_X360_AUDIO_EP_IN1  (0x83)
+#define POF_USB_X360_AUDIO_EP_OUT1  (0x04)
+#define POF_USB_X360_AUDIO_EP_IN2  (0x85)
+#define POF_USB_X360_AUDIO_EP_OUT2  (0x06)
+#define POF_USB_X360_PLUGIN_MODULE_EP_IN  (0x87)
 
 #define POF_USB_EP_IN_SIZE  (64UL)
 #define POF_USB_EP_OUT_SIZE (64UL)
@@ -24,6 +30,8 @@ static const struct usb_string_descriptor dev_manuf_desc =
     USB_ARRAY_DESC(0x41, 0x63, 0x74, 0x69, 0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x00);
 static const struct usb_string_descriptor dev_product_desc =
     USB_ARRAY_DESC(0x53, 0x70, 0x79, 0x72, 0x6f, 0x20, 0x50, 0x6f, 0x72, 0x74, 0x61, 0x00);
+static const struct usb_string_descriptor dev_security_desc = 
+    USB_STRING_DESC("Xbox Security Method 3, Version 1.00, © 2005 Microsoft Corporation. All rights reserved.");
 
 static const uint8_t hid_report_desc[] = {0x06, 0x00, 0xFF, 0x09, 0x01, 0xA1, 0x01, 0x19,
                                           0x01, 0x29, 0x40, 0x15, 0x00, 0x26, 0xFF, 0x00,
@@ -261,6 +269,39 @@ struct PoFUsbDescriptor {
     struct usb_endpoint_descriptor ep_out;
 } __attribute__((packed));
 
+struct usb_xbox_intf_descriptor {
+    uint8_t bLength;
+    uint8_t bDescriptorType;
+    uint8_t reserved[2];
+    uint8_t subtype;
+    uint8_t reserved2;
+    uint8_t bEndpointAddressIn;
+    uint8_t bMaxDataSizeIn;
+    uint8_t reserved3[5];
+    uint8_t bEndpointAddressOut;
+    uint8_t bMaxDataSizeOut;
+    uint8_t reserved4[2];
+} __attribute__((packed));
+
+struct PoFUsbDescriptorXbox360 {
+    struct usb_config_descriptor config;
+    struct usb_interface_descriptor intf;
+    struct usb_xbox_intf_descriptor xbox_desc;
+    struct usb_endpoint_descriptor ep_in;
+    struct usb_endpoint_descriptor ep_out;
+    struct usb_interface_descriptor intfAudio;
+    uint8_t audio_desc[0x1B];
+    struct usb_endpoint_descriptor ep_in_audio1;
+    struct usb_endpoint_descriptor ep_out_audio1;
+    struct usb_endpoint_descriptor ep_in_audio2;
+    struct usb_endpoint_descriptor ep_out_audio2;
+    struct usb_interface_descriptor intfPluginModule;
+    uint8_t plugin_module_desc[0x09];
+    struct usb_endpoint_descriptor ep_in_plugin_module;
+    struct usb_interface_descriptor intfSecurity;
+    uint8_t security_desc[0x06];
+} __attribute__((packed));
+
 static const struct usb_device_descriptor usb_pof_dev_descr = {
     .bLength = sizeof(struct usb_device_descriptor),
     .bDescriptorType = USB_DTYPE_DEVICE,
@@ -271,6 +312,23 @@ static const struct usb_device_descriptor usb_pof_dev_descr = {
     .bMaxPacketSize0 = USB_EP0_SIZE,
     .idVendor = POF_USB_VID,
     .idProduct = POF_USB_PID,
+    .bcdDevice = VERSION_BCD(1, 0, 0),
+    .iManufacturer = 1, // UsbDevManuf
+    .iProduct = 2, // UsbDevProduct
+    .iSerialNumber = 0,
+    .bNumConfigurations = 1,
+};
+
+static const struct usb_device_descriptor usb_pof_dev_descr_xbox_360 = {
+    .bLength = sizeof(struct usb_device_descriptor),
+    .bDescriptorType = USB_DTYPE_DEVICE,
+    .bcdUSB = VERSION_BCD(2, 0, 0),
+    .bDeviceClass = USB_CLASS_PER_INTERFACE,
+    .bDeviceSubClass = USB_SUBCLASS_NONE,
+    .bDeviceProtocol = USB_PROTO_NONE,
+    .bMaxPacketSize0 = USB_EP0_SIZE,
+    .idVendor = POF_USB_VID,
+    .idProduct = POF_USB_PID_X360,
     .bcdDevice = VERSION_BCD(1, 0, 0),
     .iManufacturer = 1, // UsbDevManuf
     .iProduct = 2, // UsbDevProduct
@@ -332,11 +390,149 @@ static const struct PoFUsbDescriptor usb_pof_cfg_descr = {
         },
 };
 
+static const struct PoFUsbDescriptorX360 usb_pof_cfg_descr_x360 = {
+    .config =
+        {
+            .bLength = sizeof(struct usb_config_descriptor),
+            .bDescriptorType = USB_DTYPE_CONFIGURATION,
+            .wTotalLength = sizeof(struct PoFUsbDescriptor),
+            .bNumInterfaces = 1,
+            .bConfigurationValue = 1,
+            .iConfiguration = NO_DESCRIPTOR,
+            .bmAttributes = USB_CFG_ATTR_RESERVED,
+            .bMaxPower = USB_CFG_POWER_MA(500),
+        },
+    .intf =
+        {
+            .bLength = sizeof(struct usb_interface_descriptor),
+            .bDescriptorType = USB_DTYPE_INTERFACE,
+            .bInterfaceNumber = 0,
+            .bAlternateSetting = 0,
+            .bNumEndpoints = 2,
+            .bInterfaceClass = 0xFF,
+            .bInterfaceSubClass = 0x5D,
+            .bInterfaceProtocol = 0x01,
+            .iInterface = NO_DESCRIPTOR,
+        },
+    .xbox_desc =
+        {
+            {
+                .bLength = sizeof(struct usb_xbox_intf_descriptor),
+                .bDescriptorType = 0x21,
+                .reserved = {0x10, 0x01},
+                .subtype = 0x24,
+                .reserved2 = 0x25,
+                .bEndpointAddressIn = POF_USB_EP_IN,
+                .bMaxDataSizeIn = 0x14,
+                .reserved3 = {0x03, 0x03, 0x03, 0x04, 0x13},
+                .bEndpointAddressOut = POF_USB_EP_OUT,
+                .bMaxDataSizeOut = 0x08,
+                .reserved4 = {0x03, 0x03},
+            }
+        },
+    .ep_in =
+        {
+            .bLength = sizeof(struct usb_endpoint_descriptor),
+            .bDescriptorType = USB_DTYPE_ENDPOINT,
+            .bEndpointAddress = POF_USB_EP_IN,
+            .bmAttributes = USB_EPTYPE_INTERRUPT,
+            .wMaxPacketSize = 0x40,
+            .bInterval = HID_INTERVAL,
+        },
+    .ep_out =
+        {
+            .bLength = sizeof(struct usb_endpoint_descriptor),
+            .bDescriptorType = USB_DTYPE_ENDPOINT,
+            .bEndpointAddress = POF_USB_EP_OUT,
+            .bmAttributes = USB_EPTYPE_INTERRUPT,
+            .wMaxPacketSize = 0x40,
+            .bInterval = HID_INTERVAL,
+        },
+    .intfAudio =
+        {
+            .bLength = sizeof(struct usb_interface_descriptor),
+            .bDescriptorType = USB_DTYPE_INTERFACE,
+            .bInterfaceNumber = 1,
+            .bAlternateSetting = 0,
+            .bNumEndpoints = 4,
+            .bInterfaceClass = 0xFF,
+            .bInterfaceSubClass = 0x5D,
+            .bInterfaceProtocol = 0x03,
+            .iInterface = NO_DESCRIPTOR,
+        },
+    .audio_desc =
+        {0x1B, 0x21, 0x00, 0x01, 0x01, 0x01, POF_USB_X360_AUDIO_EP_IN1, 0x40, 0x01, POF_USB_X360_AUDIO_EP_OUT1,
+            0x20, 0x16, POF_USB_X360_AUDIO_EP_IN2, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x16,
+            POF_USB_X360_AUDIO_EP_OUT2, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+    .ep_in_audio1 =
+        {
+            .bLength = sizeof(struct usb_endpoint_descriptor),
+            .bDescriptorType = USB_DTYPE_ENDPOINT,
+            .bEndpointAddress = POF_USB_X360_AUDIO_EP_IN1,
+            .bmAttributes = USB_EPTYPE_INTERRUPT,
+            .wMaxPacketSize = 0x20,
+            .bInterval = 2,
+        },
+    .ep_out_audio1 =
+        {
+            .bLength = sizeof(struct usb_endpoint_descriptor),
+            .bDescriptorType = USB_DTYPE_ENDPOINT,
+            .bEndpointAddress = POF_USB_X360_AUDIO_EP_OUT1,
+            .bmAttributes = USB_EPTYPE_INTERRUPT,
+            .wMaxPacketSize = 0x20,
+            .bInterval = 4,
+        },
+    .ep_in_audio2 =
+        {
+            .bLength = sizeof(struct usb_endpoint_descriptor),
+            .bDescriptorType = USB_DTYPE_ENDPOINT,
+            .bEndpointAddress = POF_USB_X360_AUDIO_EP_IN2,
+            .bmAttributes = USB_EPTYPE_INTERRUPT,
+            .wMaxPacketSize = 0x20,
+            .bInterval = 0x40,
+        },
+    .ep_out_audio2 =
+        {
+            .bLength = sizeof(struct usb_endpoint_descriptor),
+            .bDescriptorType = USB_DTYPE_ENDPOINT,
+            .bEndpointAddress = POF_USB_X360_AUDIO_EP_OUT2,
+            .bmAttributes = USB_EPTYPE_INTERRUPT,
+            .wMaxPacketSize = 0x10,
+            .bInterval = 0x10,
+        },
+    .plugin_module_desc =
+        {0x09, 0x21, 0x00, 0x01, 0x01, 0x22, POF_USB_X360_PLUGIN_MODULE_EP_IN, 0x07, 0x00},
+    .ep_in_plugin_module =
+        {
+            .bLength = sizeof(struct usb_endpoint_descriptor),
+            .bDescriptorType = USB_DTYPE_ENDPOINT,
+            .bEndpointAddress = POF_USB_X360_PLUGIN_MODULE_EP_IN,
+            .bmAttributes = USB_EPTYPE_INTERRUPT,
+            .wMaxPacketSize = 0x20,
+            .bInterval = 16,
+        },
+    .intfSecurity =
+        {
+            .bLength = sizeof(struct usb_interface_descriptor),
+            .bDescriptorType = USB_DTYPE_INTERFACE,
+            .bInterfaceNumber = 2,
+            .bAlternateSetting = 0,
+            .bNumEndpoints = 0,
+            .bInterfaceClass = 0xFF,
+            .bInterfaceSubClass = 0xFD,
+            .bInterfaceProtocol = 0x13,
+            .iInterface = 4,
+        },
+    .security_desc =
+        {0x06, 0x41, 0x00, 0x01, 0x01, 0x03},
+};
+
 /* Control requests handler */
 static usbd_respond
     pof_hid_control(usbd_device* dev, usbd_ctlreq* req, usbd_rqc_callback* callback) {
     UNUSED(callback);
     uint8_t wValueH = req->wValue >> 8;
+    uint8_t wValueL = req->wValue & 0xFF;
     uint16_t length = req->wLength;
 
     PoFUsb* pof_usb = pof_cur;
@@ -386,6 +582,13 @@ static usbd_respond
             dev->status.data_ptr = (uint8_t*)hid_report_desc;
             dev->status.data_count = sizeof(hid_report_desc);
             return usbd_ack;
+        case USB_DTYPE_STRING:
+            if (wValueL == 4) {
+                dev->status.data_ptr = (uint8_t*)dev_security_desc;
+                dev->status.data_count = sizeof(dev_security_desc);
+                return usbd_ack;
+            }
+            return usbd_fail;
         default:
             return usbd_fail;
         }
@@ -403,11 +606,13 @@ PoFUsb* pof_usb_start(VirtualPortal* virtual_portal) {
     pof_usb->usb.deinit = pof_usb_deinit;
     pof_usb->usb.wakeup = pof_usb_wakeup;
     pof_usb->usb.suspend = pof_usb_suspend;
-    pof_usb->usb.dev_descr = (struct usb_device_descriptor*)&usb_pof_dev_descr;
+    // pof_usb->usb.dev_descr = (struct usb_device_descriptor*)&usb_pof_dev_descr;
+    pof_usb->usb.dev_descr = (struct usb_device_descriptor*)&usb_pof_dev_descr_xbox_360;
     pof_usb->usb.str_manuf_descr = (void*)&dev_manuf_desc;
     pof_usb->usb.str_prod_descr = (void*)&dev_product_desc;
     pof_usb->usb.str_serial_descr = NULL;
-    pof_usb->usb.cfg_descr = (void*)&usb_pof_cfg_descr;
+    // pof_usb->usb.cfg_descr = (void*)&usb_pof_cfg_descr;
+    pof_usb->usb.cfg_descr = (void*)&usb_pof_cfg_descr_x360;
 
     if(!furi_hal_usb_set_config(&pof_usb->usb, pof_usb)) {
         FURI_LOG_E(TAG, "USB locked, can not start");
