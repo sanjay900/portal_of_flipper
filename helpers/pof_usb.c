@@ -522,6 +522,19 @@ static const struct PoFUsbDescriptorXbox360 usb_pof_cfg_descr_x360 = {
         },
     .plugin_module_desc =
         {0x09, 0x21, 0x00, 0x01, 0x01, 0x22, POF_USB_X360_PLUGIN_MODULE_EP_IN, 0x07, 0x00},
+
+    .intfPluginModule =
+        {
+            .bLength = sizeof(struct usb_interface_descriptor),
+            .bDescriptorType = USB_DTYPE_INTERFACE,
+            .bInterfaceNumber = 1,
+            .bAlternateSetting = 0,
+            .bNumEndpoints = 1,
+            .bInterfaceClass = 0xFF,
+            .bInterfaceSubClass = 0x5D,
+            .bInterfaceProtocol = 0x02,
+            .iInterface = NO_DESCRIPTOR,
+        },
     .ep_in_plugin_module =
         {
             .bLength = sizeof(struct usb_endpoint_descriptor),
