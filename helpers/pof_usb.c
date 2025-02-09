@@ -41,6 +41,8 @@ static const uint8_t hid_report_desc[] = {0x06, 0x00, 0xFF, 0x09, 0x01, 0xA1, 0x
 static usbd_respond pof_usb_ep_config(usbd_device* dev, uint8_t cfg);
 static usbd_respond
     pof_hid_control(usbd_device* dev, usbd_ctlreq* req, usbd_rqc_callback* callback);
+static usbd_respond
+    pof_xbox_360_control(usbd_device* dev, usbd_ctlreq* req, usbd_rqc_callback* callback);
 static void pof_usb_send(usbd_device* dev, uint8_t* buf, uint16_t len);
 static int32_t pof_usb_receive(usbd_device* dev, uint8_t* buf, uint16_t max_len);
 
@@ -167,6 +169,26 @@ static void pof_usb_init(usbd_device* dev, FuriHalUsbInterface* intf, void* ctx)
     usbd_reg_config(dev, pof_usb_ep_config);
     usbd_reg_control(dev, pof_hid_control);
     UNUSED(pof_hid_control);
+    usbd_connect(dev, true);
+
+    pof_usb->thread = furi_thread_alloc();
+    furi_thread_set_name(pof_usb->thread, "PoFUsb");
+    furi_thread_set_stack_size(pof_usb->thread, 2 * 1024);
+    furi_thread_set_context(pof_usb->thread, ctx);
+    furi_thread_set_callback(pof_usb->thread, pof_thread_worker);
+
+    furi_thread_start(pof_usb->thread);
+}
+
+static void pof_usb_init_xbox_360(usbd_device* dev, FuriHalUsbInterface* intf, void* ctx) {
+    UNUSED(intf);
+    PoFUsb* pof_usb = ctx;
+    pof_cur = pof_usb;
+    pof_usb->dev = dev;
+
+    usbd_reg_config(dev, pof_usb_ep_config);
+    usbd_reg_control(dev, pof_xbox_360_control);
+    UNUSED(pof_xbox_360_control);
     usbd_connect(dev, true);
 
     pof_usb->thread = furi_thread_alloc();
@@ -572,14 +594,14 @@ static usbd_respond
            (USB_REQ_INTERFACE | USB_REQ_STANDARD) &&
        req->wIndex == 0 && req->bRequest == USB_STD_GET_DESCRIPTOR) {
         switch(wValueH) {
-        // case USB_DTYPE_HID:
-        //     dev->status.data_ptr = (uint8_t*)&(usb_pof_cfg_descr.hid_desc);
-        //     dev->status.data_count = sizeof(usb_pof_cfg_descr.hid_desc);
-        //     return usbd_ack;
-        // case USB_DTYPE_HID_REPORT:
-        //     dev->status.data_ptr = (uint8_t*)hid_report_desc;
-        //     dev->status.data_count = sizeof(hid_report_desc);
-        //     return usbd_ack;
+        case USB_DTYPE_HID:
+            dev->status.data_ptr = (uint8_t*)&(usb_pof_cfg_descr.hid_desc);
+            dev->status.data_count = sizeof(usb_pof_cfg_descr.hid_desc);
+            return usbd_ack;
+        case USB_DTYPE_HID_REPORT:
+            dev->status.data_ptr = (uint8_t*)hid_report_desc;
+            dev->status.data_count = sizeof(hid_report_desc);
+            return usbd_ack;
         case USB_DTYPE_STRING:
             if (wValueL == 4) {
                 dev->status.data_ptr = (uint8_t*)&dev_security_desc;
@@ -594,6 +616,64 @@ static usbd_respond
     return usbd_fail;
 }
 
+static usbd_respond
+    pof_xbox_360_control(usbd_device* dev, usbd_ctlreq* req, usbd_rqc_callback* callback) {
+    UNUSED(callback);
+    uint8_t wValueH = req->wValue >> 8;
+    uint8_t wValueL = req->wValue & 0xFF;
+
+    if(((USB_REQ_RECIPIENT | USB_REQ_TYPE) & req->bmRequestType) ==
+           (USB_REQ_INTERFACE | USB_REQ_STANDARD) &&
+       req->wIndex == 0 && req->bRequest == USB_STD_GET_DESCRIPTOR) {
+        switch(wValueH) {
+        case USB_DTYPE_STRING:
+            if (wValueL == 4) {
+                dev->status.data_ptr = (uint8_t*)&dev_security_desc;
+                dev->status.data_count = sizeof(dev_security_desc);
+                return usbd_ack;
+            }
+            return usbd_fail;
+        default:
+            return usbd_fail;
+        }
+    }
+    return usbd_fail;
+}
+
+PoFUsb* pof_usb_start_xbox_360(VirtualPortal* virtual_portal) {
+    PoFUsb* pof_usb = malloc(sizeof(PoFUsb));
+    pof_usb->virtual_portal = virtual_portal;
+    pof_usb->dataAvailable = 0;
+
+    pof_usb->usb_prev = furi_hal_usb_get_config();
+    pof_usb->usb.init = pof_usb_init_xbox_360;
+    pof_usb->usb.deinit = pof_usb_deinit;
+    pof_usb->usb.wakeup = pof_usb_wakeup;
+    pof_usb->usb.suspend = pof_usb_suspend;
+    pof_usb->usb.dev_descr = (struct usb_device_descriptor*)&usb_pof_dev_descr_xbox_360;
+    pof_usb->usb.str_manuf_descr = (void*)&dev_manuf_desc;
+    pof_usb->usb.str_prod_descr = (void*)&dev_product_desc;
+    pof_usb->usb.str_serial_descr = NULL;
+    pof_usb->usb.cfg_descr = (void*)&usb_pof_cfg_descr_x360;
+
+    if(!furi_hal_usb_set_config(&pof_usb->usb, pof_usb)) {
+        FURI_LOG_E(TAG, "USB locked, can not start");
+        if(pof_usb->usb.str_manuf_descr) {
+            free(pof_usb->usb.str_manuf_descr);
+        }
+        if(pof_usb->usb.str_prod_descr) {
+            free(pof_usb->usb.str_prod_descr);
+        }
+        if(pof_usb->usb.str_serial_descr) {
+            free(pof_usb->usb.str_serial_descr);
+        }
+
+        free(pof_usb);
+        return NULL;
+    }
+    return pof_usb;
+}
+
 PoFUsb* pof_usb_start(VirtualPortal* virtual_portal) {
     PoFUsb* pof_usb = malloc(sizeof(PoFUsb));
     pof_usb->virtual_portal = virtual_portal;
@@ -605,12 +685,10 @@ PoFUsb* pof_usb_start(VirtualPortal* virtual_portal) {
     pof_usb->usb.wakeup = pof_usb_wakeup;
     pof_usb->usb.suspend = pof_usb_suspend;
     pof_usb->usb.dev_descr = (struct usb_device_descriptor*)&usb_pof_dev_descr;
-    pof_usb->usb.dev_descr = (struct usb_device_descriptor*)&usb_pof_dev_descr_xbox_360;
     pof_usb->usb.str_manuf_descr = (void*)&dev_manuf_desc;
     pof_usb->usb.str_prod_descr = (void*)&dev_product_desc;
     pof_usb->usb.str_serial_descr = NULL;
     pof_usb->usb.cfg_descr = (void*)&usb_pof_cfg_descr;
-    pof_usb->usb.cfg_descr = (void*)&usb_pof_cfg_descr_x360;
 
     if(!furi_hal_usb_set_config(&pof_usb->usb, pof_usb)) {
         FURI_LOG_E(TAG, "USB locked, can not start");

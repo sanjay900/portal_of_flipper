@@ -16,6 +16,7 @@
 typedef struct PoFUsb PoFUsb;
 
 PoFUsb* pof_usb_start(VirtualPortal* virtual_portal);
+PoFUsb* pof_usb_start_xbox_360(VirtualPortal* virtual_portal);
 void pof_usb_stop(PoFUsb* pof);
 
 /*descriptor type*/
