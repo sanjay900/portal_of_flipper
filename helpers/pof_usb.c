@@ -417,7 +417,7 @@ static const struct PoFUsbDescriptorXbox360 usb_pof_cfg_descr_x360 = {
         {
             .bLength = sizeof(struct usb_config_descriptor),
             .bDescriptorType = USB_DTYPE_CONFIGURATION,
-            .wTotalLength = sizeof(struct PoFUsbDescriptor),
+            .wTotalLength = sizeof(struct PoFUsbDescriptorXbox360),
             .bNumInterfaces = 4,
             .bConfigurationValue = 1,
             .iConfiguration = NO_DESCRIPTOR,
