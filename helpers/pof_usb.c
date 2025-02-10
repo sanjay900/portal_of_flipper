@@ -29,7 +29,7 @@
 static const struct usb_string_descriptor dev_manuf_desc =
     USB_ARRAY_DESC(0x41, 0x63, 0x74, 0x69, 0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x00);
 static const struct usb_string_descriptor dev_product_desc =
-    USB_ARRAY_DESC(0x53, 0x70, 0x79, 0x72, 0x6f, 0x20, 0x50, 0x6f, 0x72, 0x74, 0x61, 0x6c, 0x00);
+    USB_ARRAY_DESC(0x53, 0x70, 0x79, 0x72, 0x6f, 0x20, 0x50, 0x6f, 0x72, 0x74, 0x61, 0x00);
 static const struct usb_string_descriptor dev_security_desc = 
     USB_ARRAY_DESC('X', 'b', 'o', 'x', ' ', 'S', 'e', 'c', 'u', 'r', 'i', 't', 'y',
     ' ', 'M', 'e', 't', 'h', 'o', 'd', ' ', '3', ',', ' ',
@@ -167,9 +167,19 @@ static int32_t pof_thread_worker(void* context) {
 
         if(flags == (uint32_t)FuriFlagErrorISR) { // timeout
             memset(tx_data, 0, sizeof(tx_data));
-            len_data = virtual_portal_send_status(virtual_portal, tx_data);
-            if(len_data > 0) {
-                pof_usb_send(dev, tx_data, POF_USB_ACTUAL_OUTPUT_SIZE);
+            if (pof_usb ->virtual_portal->type == PoFXbox360) {
+                len_data = virtual_portal_send_status(virtual_portal, tx_data + 2);
+                if(len_data > 0) {
+                    tx_data[0] = 0x1b;
+                    tx_data[1] = len_data;
+                    pof_usb_send(dev, tx_data, POF_USB_ACTUAL_OUTPUT_SIZE);
+                }
+            }
+            if (pof_usb ->virtual_portal->type == PoFHID) {
+                len_data = virtual_portal_send_status(virtual_portal, tx_data);
+                if(len_data > 0) {
+                    pof_usb_send(dev, tx_data, POF_USB_ACTUAL_OUTPUT_SIZE);
+                }
             }
         }
     }
@@ -378,13 +388,13 @@ static const struct usb_device_descriptor usb_pof_dev_descr_xbox_360 = {
     .bLength = sizeof(struct usb_device_descriptor),
     .bDescriptorType = USB_DTYPE_DEVICE,
     .bcdUSB = VERSION_BCD(2, 0, 0),
-    .bDeviceClass = 0xFF,
-    .bDeviceSubClass = 0xFF,
-    .bDeviceProtocol = 0xFF,
+    .bDeviceClass = USB_CLASS_PER_INTERFACE,
+    .bDeviceSubClass = USB_SUBCLASS_NONE,
+    .bDeviceProtocol = USB_PROTO_NONE,
     .bMaxPacketSize0 = USB_EP0_SIZE,
     .idVendor = POF_USB_VID,
     .idProduct = POF_USB_PID_X360,
-    .bcdDevice = 0x021B,
+    .bcdDevice = VERSION_BCD(1, 0, 0),
     .iManufacturer = 1, // UsbDevManuf
     .iProduct = 2, // UsbDevProduct
     .iSerialNumber = 0,
