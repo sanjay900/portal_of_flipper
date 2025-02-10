@@ -103,18 +103,8 @@ static int32_t pof_thread_worker(void* context) {
             if(virtual_portal->speaker || virtual_portal->type == PoFXbox360) {
                 uint8_t buf[POF_USB_RX_MAX_SIZE];
                 len_data = pof_usb_receive(dev, buf, POF_USB_RX_MAX_SIZE);
-                // audio packets are > 32 bytes
-                if(len_data > 32) {
-                    // https://github.com/xMasterX/all-the-plugins/blob/dev/base_pack/wav_player/wav_player_hal.c
-                    /*
-                    FURI_LOG_RAW_I("pof_usb_receive: ");
-                    for(uint32_t i = 0; i < len_data; i++) {
-                        FURI_LOG_RAW_I("%02x", buf[i]);
-                    }
-                    FURI_LOG_RAW_I("\r\n");
-                    */
-                } else if (len_data > 0 && pof_usb->virtual_portal->type == PoFXbox360) {
-                    // standard portal packets are not
+                // 360 controller packets have a header of 0x0b 0x14
+                if (len_data > 0 && pof_usb->virtual_portal->type == PoFXbox360 && buf[0] == 0x0b && buf[1] == 0x14) {
                     memset(tx_data, 0, sizeof(tx_data));
                     // prepend packet with xinput header
                     int send_len =
@@ -124,7 +114,18 @@ static int32_t pof_thread_worker(void* context) {
                         tx_data[1] = 0x14;
                         pof_usb_send(dev, tx_data, POF_USB_ACTUAL_OUTPUT_SIZE);
                     }
-                }
+                } else if(len_data > 0) {
+                    // 360 audio packets start with 0b 17
+                    // we would just process the audio samples as buf + 2 for x360 and buf for hid.
+                    // https://github.com/xMasterX/all-the-plugins/blob/dev/base_pack/wav_player/wav_player_hal.c
+                    /*
+                    FURI_LOG_RAW_I("pof_usb_receive: ");
+                    for(uint32_t i = 0; i < len_data; i++) {
+                        FURI_LOG_RAW_I("%02x", buf[i]);
+                    }
+                    FURI_LOG_RAW_I("\r\n");
+                    */
+                }  
             }
             // hid portals use control transfers
             if(pof_usb->virtual_portal->type == PoFHID && pof_usb->dataAvailable > 0 ) {
