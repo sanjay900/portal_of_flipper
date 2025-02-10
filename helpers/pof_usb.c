@@ -142,7 +142,6 @@ static int32_t pof_thread_worker(void* context) {
 
         if(flags) {
             if(flags & EventResetSio) {
-                pof_usb ->virtual_portal->sequence_number = 0;
             }
             if(flags & EventTxComplete) {
                 pof_usb->tx_complete = true;
