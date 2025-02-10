@@ -523,7 +523,7 @@ static const struct PoFUsbDescriptorXbox360 usb_pof_cfg_descr_x360 = {
             .bDescriptorType = USB_DTYPE_ENDPOINT,
             .bEndpointAddress = POF_USB_EP_OUT,
             .bmAttributes = USB_EPTYPE_INTERRUPT,
-            .wMaxPacketSize = 0x20,
+            .wMaxPacketSize = 0x40,
             .bInterval = HID_INTERVAL,
         },
     .intfAudio =
@@ -575,7 +575,7 @@ static const struct PoFUsbDescriptorXbox360 usb_pof_cfg_descr_x360 = {
             .bDescriptorType = USB_DTYPE_ENDPOINT,
             .bEndpointAddress = POF_USB_X360_AUDIO_EP_OUT2,
             .bmAttributes = USB_EPTYPE_INTERRUPT,
-            .wMaxPacketSize = 0x10,
+            .wMaxPacketSize = 0x20,
             .bInterval = 0x10,
         },
 
