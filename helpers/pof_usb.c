@@ -397,16 +397,16 @@ static const struct XInputVibrationCapabilities_t XInputVibrationCapabilities = 
     rid : 0x00,
     rsize : sizeof(struct XInputVibrationCapabilities_t),
     padding : 0x00,
-    left_motor : 0xFF,
-    right_motor : 0xFF,
+    left_motor : 0x00,
+    right_motor : 0x00,
     padding_2 : {0x00, 0x00, 0x00}
 };
 static const struct XInputInputCapabilities_t XInputInputCapabilities = {
     rid : 0x00,
     rsize : sizeof(struct XInputInputCapabilities_t),
-    buttons : 0xf73f,
-    leftTrigger : 0xff,
-    rightTrigger : 0xff,
+    buttons : 0x0000,
+    leftTrigger : 0x00,
+    rightTrigger : 0x00,
     leftThumbX : 0x0000,
     leftThumbY : 0x0000,
     rightThumbX : 0x0000,
