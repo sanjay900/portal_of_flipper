@@ -313,7 +313,28 @@ struct PoFUsbDescriptorXbox360 {
     struct usb_interface_descriptor intfSecurity;
     uint8_t security_desc[0x06];
 } __attribute__((packed));
+struct XInputVibrationCapabilities_t {
+    uint8_t rid;
+    uint8_t rsize;
+    uint8_t padding;
+    uint8_t left_motor;
+    uint8_t right_motor;
+    uint8_t padding_2[3];
+} __attribute__((packed)) ;
 
+struct XInputInputCapabilities_t {
+    uint8_t rid;
+    uint8_t rsize;
+    uint16_t buttons;
+    uint8_t leftTrigger;
+    uint8_t rightTrigger;
+    uint16_t leftThumbX;
+    uint16_t leftThumbY;
+    uint16_t rightThumbX;
+    uint16_t rightThumbY;
+    uint8_t reserved[4];
+    uint16_t flags;
+} __attribute__((packed));
 static const struct usb_device_descriptor usb_pof_dev_descr = {
     .bLength = sizeof(struct usb_device_descriptor),
     .bDescriptorType = USB_DTYPE_DEVICE,
@@ -346,6 +367,28 @@ static const struct usb_device_descriptor usb_pof_dev_descr_xbox_360 = {
     .iProduct = 2, // UsbDevProduct
     .iSerialNumber = 0,
     .bNumConfigurations = 1,
+};
+
+static const struct XInputVibrationCapabilities_t XInputVibrationCapabilities = {
+    rid : 0x00,
+    rsize : sizeof(struct XInputVibrationCapabilities_t),
+    padding : 0x00,
+    left_motor : 0xFF,
+    right_motor : 0xFF,
+    padding_2 : {0x00, 0x00, 0x00}
+};
+static const struct XInputInputCapabilities_t XInputInputCapabilities = {
+    rid : 0x00,
+    rsize : sizeof(struct XInputInputCapabilities_t),
+    buttons : 0xf73f,
+    leftTrigger : 0xff,
+    rightTrigger : 0xff,
+    leftThumbX : 0x0000,
+    leftThumbY : 0x0000,
+    rightThumbX : 0x0000,
+    rightThumbY : 0x0000,
+    reserved : {0x00, 0x00, 0x00, 0x00},
+    flags : 0x00
 };
 
 static const struct PoFUsbDescriptor usb_pof_cfg_descr = {
@@ -560,6 +603,17 @@ static usbd_respond
     uint16_t length = req->wLength;
 
     PoFUsb* pof_usb = pof_cur;
+
+    if (req->bmRequestType == 0xC1 && req->bRequest == USB_HID_GETREPORT && req->wValue == 0x0100) {
+        dev->status.data_ptr = (uint8_t*)&(XInputInputCapabilities);
+        dev->status.data_count = sizeof(XInputInputCapabilities);
+        return usbd_ack;
+    }
+    if (req->bmRequestType == 0xC1 && req->bRequest == USB_HID_GETREPORT && req->wValue == 0x0000) {
+        dev->status.data_ptr = (uint8_t*)&(XInputVibrationCapabilities);
+        dev->status.data_count = sizeof(XInputVibrationCapabilities);
+        return usbd_ack;
+    }
 
     /* HID control requests */
     if(((USB_REQ_RECIPIENT | USB_REQ_TYPE) & req->bmRequestType) ==
