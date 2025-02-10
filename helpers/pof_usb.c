@@ -632,17 +632,14 @@ PoFUsb* pof_usb_start(VirtualPortal* virtual_portal) {
     pof_usb->usb.suspend = pof_usb_suspend;
     if (virtual_portal->type == PoFHID) {
         pof_usb->usb.dev_descr = (struct usb_device_descriptor*)&usb_pof_dev_descr;
-        pof_usb->usb.str_manuf_descr = (void*)&dev_manuf_desc;
-        pof_usb->usb.str_prod_descr = (void*)&dev_product_desc;
-        pof_usb->usb.str_serial_descr = NULL;
         pof_usb->usb.cfg_descr = (void*)&usb_pof_cfg_descr;
     } else if (virtual_portal->type == PoFXbox360) {
         pof_usb->usb.dev_descr = (struct usb_device_descriptor*)&usb_pof_dev_descr_xbox_360;
-        pof_usb->usb.str_manuf_descr = (void*)&dev_manuf_desc;
-        pof_usb->usb.str_prod_descr = (void*)&dev_product_desc;
-        pof_usb->usb.str_serial_descr = NULL;
         pof_usb->usb.cfg_descr = (void*)&usb_pof_cfg_descr_x360;
     }
+    pof_usb->usb.str_manuf_descr = (void*)&dev_manuf_desc;
+    pof_usb->usb.str_prod_descr = (void*)&dev_product_desc;
+    pof_usb->usb.str_serial_descr = NULL;
     if(!furi_hal_usb_set_config(&pof_usb->usb, pof_usb)) {
         FURI_LOG_E(TAG, "USB locked, can not start");
         if(pof_usb->usb.str_manuf_descr) {
