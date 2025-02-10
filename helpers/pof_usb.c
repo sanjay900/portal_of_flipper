@@ -98,10 +98,10 @@ static int32_t pof_thread_worker(void* context) {
     while(true) {
         uint32_t flags = furi_thread_flags_wait(EventAll, FuriFlagWaitAny, timeout);
         if(flags & EventRx) { //fast flag
-            UNUSED(pof_usb_receive);
 
-            uint8_t buf[POF_USB_RX_MAX_SIZE];
+            // 360 portals use interrupts for everything
             if(virtual_portal->speaker || virtual_portal->type == PoFXbox360) {
+                uint8_t buf[POF_USB_RX_MAX_SIZE];
                 len_data = pof_usb_receive(dev, buf, POF_USB_RX_MAX_SIZE);
                 // https://github.com/xMasterX/all-the-plugins/blob/dev/base_pack/wav_player/wav_player_hal.c
                 if(len_data > 0) {
@@ -112,24 +112,25 @@ static int32_t pof_thread_worker(void* context) {
                     }
                     FURI_LOG_RAW_I("\r\n");
                     */
+                    if(pof_usb->virtual_portal->type == PoFXbox360) {
+                        memset(tx_data, 0, sizeof(tx_data));
+                        // prepend packet with xinput header
+                        int send_len =
+                            virtual_portal_process_message(virtual_portal, buf + 2, tx_data + 2);
+                        if(send_len > 0) {
+                            tx_data[0] = 0x0b;
+                            tx_data[1] = 0x14;
+                            pof_usb_send(dev, tx_data, POF_USB_ACTUAL_OUTPUT_SIZE);
+                        }
+                    }
                 }
             }
+            // hid portals use control transfers
             if(pof_usb->virtual_portal->type == PoFHID && pof_usb->dataAvailable > 0 ) {
                 memset(tx_data, 0, sizeof(tx_data));
                 int send_len =
                     virtual_portal_process_message(virtual_portal, pof_usb->data, tx_data);
                 if(send_len > 0) {
-                    pof_usb_send(dev, tx_data, POF_USB_ACTUAL_OUTPUT_SIZE);
-                }
-            }
-            if(pof_usb->virtual_portal->type == PoFXbox360 && len_data > 0) {
-                memset(tx_data, 0, sizeof(tx_data));
-                // prepend packet with xinput header
-                int send_len =
-                    virtual_portal_process_message(virtual_portal, buf + 2, tx_data + 2);
-                if(send_len > 0) {
-                    tx_data[0] = 0x0b;
-                    tx_data[1] = 0x14;
                     pof_usb_send(dev, tx_data, POF_USB_ACTUAL_OUTPUT_SIZE);
                 }
             }
