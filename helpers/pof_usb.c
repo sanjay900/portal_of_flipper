@@ -114,6 +114,9 @@ static int32_t pof_thread_worker(void* context) {
                     */
                 }
             }
+            if (virtual_portal->type == PoFXbox360) {
+                pof_usb_receive(dev, pof_usb->data, POF_USB_RX_MAX_SIZE);
+            }
 
             if(pof_usb->dataAvailable > 0) {
                 memset(tx_data, 0, sizeof(tx_data));
