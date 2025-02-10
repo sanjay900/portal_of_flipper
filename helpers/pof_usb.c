@@ -674,6 +674,14 @@ static usbd_respond
             dev->status.data_ptr = (uint8_t*)hid_report_desc;
             dev->status.data_count = sizeof(hid_report_desc);
             return usbd_ack;
+        default:
+            return usbd_fail;
+        }
+    }
+    if(((USB_REQ_RECIPIENT | USB_REQ_TYPE) & req->bmRequestType) ==
+           (USB_REQ_DEVICE | USB_REQ_STANDARD) &&
+       req->wIndex == 0 && req->bRequest == USB_STD_GET_DESCRIPTOR) {
+        switch(wValueH) {
         case USB_DTYPE_STRING:
             if (wValueL == 4) {
                 dev->status.data_ptr = (uint8_t*)&dev_security_desc;
