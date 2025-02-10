@@ -100,8 +100,8 @@ static int32_t pof_thread_worker(void* context) {
         if(flags & EventRx) { //fast flag
             UNUSED(pof_usb_receive);
 
-            if(virtual_portal->speaker) {
-                uint8_t buf[POF_USB_RX_MAX_SIZE];
+            uint8_t buf[POF_USB_RX_MAX_SIZE];
+            if(virtual_portal->speaker || virtual_portal->type == PoFXbox360) {
                 len_data = pof_usb_receive(dev, buf, POF_USB_RX_MAX_SIZE);
                 // https://github.com/xMasterX/all-the-plugins/blob/dev/base_pack/wav_player/wav_player_hal.c
                 if(len_data > 0) {
@@ -114,16 +114,13 @@ static int32_t pof_thread_worker(void* context) {
                     */
                 }
             }
-            if (virtual_portal->type == PoFXbox360) {
-                pof_usb_receive(dev, pof_usb->data, POF_USB_RX_MAX_SIZE);
-            }
 
-            if(pof_usb->dataAvailable > 0) {
+            if(pof_usb->dataAvailable > 0 || len_data > 0) {
                 memset(tx_data, 0, sizeof(tx_data));
                 if (pof_usb ->virtual_portal->type == PoFXbox360) {
                     // prepend packet with xinput header
                     int send_len =
-                        virtual_portal_process_message(virtual_portal, pof_usb->data + 2, tx_data + 2);
+                        virtual_portal_process_message(virtual_portal, buf + 2, tx_data + 2);
                     if(send_len > 0) {
                         tx_data[0] = 0x0b;
                         tx_data[1] = 0x14;
