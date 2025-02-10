@@ -111,6 +111,7 @@ static int32_t pof_thread_worker(void* context) {
             if(pof_usb->dataAvailable > 0) {
                 memset(tx_data, 0, sizeof(tx_data));
                 if (pof_usb ->virtual_portal->type == PoFXbox360) {
+                    // prepend packet with xinput header
                     int send_len =
                         virtual_portal_process_message(virtual_portal, pof_usb->data + 2, tx_data + 2);
                     if(send_len > 0) {
@@ -121,10 +122,8 @@ static int32_t pof_thread_worker(void* context) {
                 }
                 if (pof_usb ->virtual_portal->type == PoFHID) {
                     int send_len =
-                        virtual_portal_process_message(virtual_portal, pof_usb->data + 2, tx_data + 2);
+                        virtual_portal_process_message(virtual_portal, pof_usb->data, tx_data);
                     if(send_len > 0) {
-                        tx_data[0] = 0x1b;
-                        tx_data[1] = send_len;
                         pof_usb_send(dev, tx_data, POF_USB_ACTUAL_OUTPUT_SIZE);
                     }
                 }
@@ -402,6 +401,7 @@ static const struct PoFUsbDescriptor usb_pof_cfg_descr = {
             .bInterval = HID_INTERVAL,
         },
 };
+
 
 static const struct PoFUsbDescriptorXbox360 usb_pof_cfg_descr_x360 = {
     .config =
