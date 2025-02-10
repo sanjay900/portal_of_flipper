@@ -679,13 +679,12 @@ static usbd_respond
         }
     }
     if(((USB_REQ_RECIPIENT | USB_REQ_TYPE) & req->bmRequestType) ==
-           (USB_REQ_DEVICE | USB_REQ_STANDARD) &&
-       req->bRequest == USB_STD_GET_DESCRIPTOR) {
+           (USB_REQ_DEVICE | USB_REQ_STANDARD) && req->bRequest == USB_STD_GET_DESCRIPTOR) {
         switch(wValueH) {
         case USB_DTYPE_STRING:
             if (wValueL == 4) {
                 dev->status.data_ptr = (uint8_t*)&dev_security_desc;
-                dev->status.data_count = sizeof(dev_security_desc);
+                dev->status.data_count = dev_security_desc.bLength;
                 return usbd_ack;
             }
             return usbd_fail;
