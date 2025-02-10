@@ -70,6 +70,7 @@ PoFApp* pof_app_alloc() {
     view_dispatcher_add_view(app->view_dispatcher, PoFViewWidget, widget_get_view(app->widget));
 
     app->virtual_portal = virtual_portal_alloc(app->notifications);
+    app->virtual_portal->type = PoFXbox360;
     // PoF emulation Start
     pof_start(app);
 
