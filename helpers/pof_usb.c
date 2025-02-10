@@ -31,7 +31,14 @@ static const struct usb_string_descriptor dev_manuf_desc =
 static const struct usb_string_descriptor dev_product_desc =
     USB_ARRAY_DESC(0x53, 0x70, 0x79, 0x72, 0x6f, 0x20, 0x50, 0x6f, 0x72, 0x74, 0x61, 0x00);
 static const struct usb_string_descriptor dev_security_desc = 
-    USB_STRING_DESC("Xbox Security Method 3, Version 1.00, © 2005 Microsoft Corporation. All rights reserved.");
+    USB_ARRAY_DESC('X', 'b', 'o', 'x', ' ', 'S', 'e', 'c', 'u', 'r', 'i', 't', 'y',
+    ' ', 'M', 'e', 't', 'h', 'o', 'd', ' ', '3', ',', ' ',
+    'V', 'e', 'r', 's', 'i', 'o', 'n', ' ', '1', '.', '0', '0', ',',
+    ' ', 0xa9, ' ', '2', '0', '0', '5', ' ',
+    'M', 'i', 'c', 'r', 'o', 's', 'o', 'f', 't', ' ',
+    'C', 'o', 'r', 'p', 'o', 'r', 'a', 't', 'i', 'o', 'n', '.', ' ',
+    'A', 'l', 'l', ' ', 'r', 'i', 'g', 'h', 't', 's', ' ',
+    'r', 'e', 's', 'e', 'r', 'v', 'e', 'd', '.');
 
 static const uint8_t hid_report_desc[] = {0x06, 0x00, 0xFF, 0x09, 0x01, 0xA1, 0x01, 0x19,
                                           0x01, 0x29, 0x40, 0x15, 0x00, 0x26, 0xFF, 0x00,
@@ -369,6 +376,8 @@ static const struct usb_device_descriptor usb_pof_dev_descr_xbox_360 = {
     .bNumConfigurations = 1,
 };
 
+static const uint8_t xbox_serial[] = {0x01, 0x01, 0x01, 0x01};
+
 static const struct XInputVibrationCapabilities_t XInputVibrationCapabilities = {
     rid : 0x00,
     rsize : sizeof(struct XInputVibrationCapabilities_t),
@@ -604,6 +613,11 @@ static usbd_respond
 
     PoFUsb* pof_usb = pof_cur;
 
+    if (req->bmRequestType == 0xC0 && req->bRequest == USB_HID_GETREPORT && req->wValue == 0x0000) {
+        dev->status.data_ptr = (uint8_t*)xbox_serial;
+        dev->status.data_count = sizeof(xbox_serial);
+        return usbd_ack;
+    }
     if (req->bmRequestType == 0xC1 && req->bRequest == USB_HID_GETREPORT && req->wValue == 0x0100) {
         dev->status.data_ptr = (uint8_t*)&(XInputInputCapabilities);
         dev->status.data_count = sizeof(XInputInputCapabilities);
