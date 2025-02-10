@@ -391,7 +391,7 @@ static const struct usb_device_descriptor usb_pof_dev_descr_xbox_360 = {
     .bNumConfigurations = 1,
 };
 
-static const uint8_t xbox_serial[] = {0x01, 0x01, 0x01, 0x01};
+static const uint8_t xbox_serial[] = {0x12, 0x14, 0x32, 0xEF};
 
 static const struct XInputVibrationCapabilities_t XInputVibrationCapabilities = {
     rid : 0x00,
