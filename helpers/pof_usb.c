@@ -680,7 +680,7 @@ static usbd_respond
     }
     if(((USB_REQ_RECIPIENT | USB_REQ_TYPE) & req->bmRequestType) ==
            (USB_REQ_DEVICE | USB_REQ_STANDARD) &&
-       req->wIndex == 0 && req->bRequest == USB_STD_GET_DESCRIPTOR) {
+       req->bRequest == USB_STD_GET_DESCRIPTOR) {
         switch(wValueH) {
         case USB_DTYPE_STRING:
             if (wValueL == 4) {
