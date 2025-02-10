@@ -629,6 +629,18 @@ static usbd_respond
         return usbd_ack;
     }
 
+    switch (req->bRequest) {
+        case 0x81:
+        case 0x82:
+        case 0x87:
+        case 0x84:
+        case 0x83:
+        case 0x86:
+            dev->status.data_ptr = (uint8_t*)&(XInputVibrationCapabilities);
+            dev->status.data_count = 0;
+            return usbd_ack;
+    }
+
     /* HID control requests */
     if(((USB_REQ_RECIPIENT | USB_REQ_TYPE) & req->bmRequestType) ==
            (USB_REQ_INTERFACE | USB_REQ_CLASS) &&
