@@ -114,27 +114,24 @@ static int32_t pof_thread_worker(void* context) {
                     */
                 }
             }
-
-            if(pof_usb->dataAvailable > 0 || len_data > 0) {
+            if(pof_usb->virtual_portal->type == PoFHID && pof_usb->dataAvailable > 0 ) {
                 memset(tx_data, 0, sizeof(tx_data));
-                if (pof_usb ->virtual_portal->type == PoFXbox360) {
-                    // prepend packet with xinput header
-                    int send_len =
-                        virtual_portal_process_message(virtual_portal, buf + 2, tx_data + 2);
-                    if(send_len > 0) {
-                        tx_data[0] = 0x0b;
-                        tx_data[1] = 0x14;
-                        pof_usb_send(dev, tx_data, POF_USB_ACTUAL_OUTPUT_SIZE);
-                    }
+                int send_len =
+                    virtual_portal_process_message(virtual_portal, pof_usb->data, tx_data);
+                if(send_len > 0) {
+                    pof_usb_send(dev, tx_data, POF_USB_ACTUAL_OUTPUT_SIZE);
                 }
-                if (pof_usb ->virtual_portal->type == PoFHID) {
-                    int send_len =
-                        virtual_portal_process_message(virtual_portal, pof_usb->data, tx_data);
-                    if(send_len > 0) {
-                        pof_usb_send(dev, tx_data, POF_USB_ACTUAL_OUTPUT_SIZE);
-                    }
+            }
+            if(pof_usb->virtual_portal->type == PoFXbox360 && len_data > 0) {
+                memset(tx_data, 0, sizeof(tx_data));
+                // prepend packet with xinput header
+                int send_len =
+                    virtual_portal_process_message(virtual_portal, buf + 2, tx_data + 2);
+                if(send_len > 0) {
+                    tx_data[0] = 0x0b;
+                    tx_data[1] = 0x14;
+                    pof_usb_send(dev, tx_data, POF_USB_ACTUAL_OUTPUT_SIZE);
                 }
-                pof_usb->dataAvailable = 0;
             }
 
             flags &= ~EventRx; // clear flag
