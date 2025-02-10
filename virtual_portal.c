@@ -89,6 +89,7 @@ int virtual_portal_status(VirtualPortal* virtual_portal, uint8_t* response) {
 }
 
 int virtual_portal_send_status(VirtualPortal* virtual_portal, uint8_t* response) {
+    // 360 portals ALWAYS send a status packet even if the portal isn't active.
     if(virtual_portal->active || virtual_portal->type == PoFXbox360) {
         notification_message(virtual_portal->notifications, &pof_sequence_cyan);
         return virtual_portal_status(virtual_portal, response);
