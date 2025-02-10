@@ -447,7 +447,7 @@ static const struct PoFUsbDescriptorXbox360 usb_pof_cfg_descr_x360 = {
             .bDescriptorType = USB_DTYPE_ENDPOINT,
             .bEndpointAddress = POF_USB_EP_IN,
             .bmAttributes = USB_EPTYPE_INTERRUPT,
-            .wMaxPacketSize = 0x40,
+            .wMaxPacketSize = 0x20,
             .bInterval = HID_INTERVAL,
         },
     .ep_out =
@@ -456,7 +456,7 @@ static const struct PoFUsbDescriptorXbox360 usb_pof_cfg_descr_x360 = {
             .bDescriptorType = USB_DTYPE_ENDPOINT,
             .bEndpointAddress = POF_USB_EP_OUT,
             .bmAttributes = USB_EPTYPE_INTERRUPT,
-            .wMaxPacketSize = 0x40,
+            .wMaxPacketSize = 0x20,
             .bInterval = HID_INTERVAL,
         },
     .intfAudio =
@@ -516,7 +516,7 @@ static const struct PoFUsbDescriptorXbox360 usb_pof_cfg_descr_x360 = {
         {
             .bLength = sizeof(struct usb_interface_descriptor),
             .bDescriptorType = USB_DTYPE_INTERFACE,
-            .bInterfaceNumber = 1,
+            .bInterfaceNumber = 2,
             .bAlternateSetting = 0,
             .bNumEndpoints = 1,
             .bInterfaceClass = 0xFF,
@@ -539,7 +539,7 @@ static const struct PoFUsbDescriptorXbox360 usb_pof_cfg_descr_x360 = {
         {
             .bLength = sizeof(struct usb_interface_descriptor),
             .bDescriptorType = USB_DTYPE_INTERFACE,
-            .bInterfaceNumber = 2,
+            .bInterfaceNumber = 3,
             .bAlternateSetting = 0,
             .bNumEndpoints = 0,
             .bInterfaceClass = 0xFF,
