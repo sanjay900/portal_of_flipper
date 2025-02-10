@@ -651,6 +651,9 @@ static usbd_respond
         dev->status.data_count = sizeof(XInputVibrationCapabilities);
         return usbd_ack;
     }
+    if (req->bmRequestType == 0x41 && req->bRequest == 00 && (req->wValue == 0x1F || req->wValue == 0x1E)) {
+        return usbd_ack;
+    }
 
     /* HID control requests */
     if(((USB_REQ_RECIPIENT | USB_REQ_TYPE) & req->bmRequestType) ==
