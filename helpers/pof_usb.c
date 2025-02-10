@@ -103,8 +103,9 @@ static int32_t pof_thread_worker(void* context) {
             if(virtual_portal->speaker || virtual_portal->type == PoFXbox360) {
                 uint8_t buf[POF_USB_RX_MAX_SIZE];
                 len_data = pof_usb_receive(dev, buf, POF_USB_RX_MAX_SIZE);
-                // https://github.com/xMasterX/all-the-plugins/blob/dev/base_pack/wav_player/wav_player_hal.c
-                if(len_data > 0) {
+                // audio packets are > 32 bytes
+                if(len_data > 32) {
+                    // https://github.com/xMasterX/all-the-plugins/blob/dev/base_pack/wav_player/wav_player_hal.c
                     /*
                     FURI_LOG_RAW_I("pof_usb_receive: ");
                     for(uint32_t i = 0; i < len_data; i++) {
@@ -112,16 +113,16 @@ static int32_t pof_thread_worker(void* context) {
                     }
                     FURI_LOG_RAW_I("\r\n");
                     */
-                    if(pof_usb->virtual_portal->type == PoFXbox360) {
-                        memset(tx_data, 0, sizeof(tx_data));
-                        // prepend packet with xinput header
-                        int send_len =
-                            virtual_portal_process_message(virtual_portal, buf + 2, tx_data + 2);
-                        if(send_len > 0) {
-                            tx_data[0] = 0x0b;
-                            tx_data[1] = 0x14;
-                            pof_usb_send(dev, tx_data, POF_USB_ACTUAL_OUTPUT_SIZE);
-                        }
+                } else if (len_data > 0 && pof_usb->virtual_portal->type == PoFXbox360) {
+                    // standard portal packets are not
+                    memset(tx_data, 0, sizeof(tx_data));
+                    // prepend packet with xinput header
+                    int send_len =
+                        virtual_portal_process_message(virtual_portal, buf + 2, tx_data + 2);
+                    if(send_len > 0) {
+                        tx_data[0] = 0x0b;
+                        tx_data[1] = 0x14;
+                        pof_usb_send(dev, tx_data, POF_USB_ACTUAL_OUTPUT_SIZE);
                     }
                 }
             }
