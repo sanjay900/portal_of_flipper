@@ -123,7 +123,7 @@ static int32_t pof_thread_worker(void* context) {
                         virtual_portal_process_message(virtual_portal, pof_usb->data + 2, tx_data + 2);
                     if(send_len > 0) {
                         tx_data[0] = 0x0b;
-                        tx_data[1] = POF_USB_ACTUAL_OUTPUT_SIZE;
+                        tx_data[1] = 0x14;
                         pof_usb_send(dev, tx_data, POF_USB_ACTUAL_OUTPUT_SIZE);
                     }
                 }
@@ -171,7 +171,7 @@ static int32_t pof_thread_worker(void* context) {
                 len_data = virtual_portal_send_status(virtual_portal, tx_data + 2);
                 if(len_data > 0) {
                     tx_data[0] = 0x0b;
-                    tx_data[1] = POF_USB_ACTUAL_OUTPUT_SIZE;
+                    tx_data[1] = 0x14;
                     pof_usb_send(dev, tx_data, POF_USB_ACTUAL_OUTPUT_SIZE);
                 }
             }
