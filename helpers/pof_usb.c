@@ -191,26 +191,6 @@ static void pof_usb_init(usbd_device* dev, FuriHalUsbInterface* intf, void* ctx)
     furi_thread_start(pof_usb->thread);
 }
 
-static void pof_usb_init_xbox_360(usbd_device* dev, FuriHalUsbInterface* intf, void* ctx) {
-    UNUSED(intf);
-    PoFUsb* pof_usb = ctx;
-    pof_cur = pof_usb;
-    pof_usb->dev = dev;
-
-    usbd_reg_config(dev, pof_usb_ep_config);
-    usbd_reg_control(dev, pof_xbox_360_control);
-    UNUSED(pof_xbox_360_control);
-    usbd_connect(dev, true);
-
-    pof_usb->thread = furi_thread_alloc();
-    furi_thread_set_name(pof_usb->thread, "PoFUsb");
-    furi_thread_set_stack_size(pof_usb->thread, 2 * 1024);
-    furi_thread_set_context(pof_usb->thread, ctx);
-    furi_thread_set_callback(pof_usb->thread, pof_thread_worker);
-
-    furi_thread_start(pof_usb->thread);
-}
-
 static void pof_usb_deinit(usbd_device* dev) {
     usbd_reg_config(dev, NULL);
     usbd_reg_control(dev, NULL);
