@@ -678,6 +678,9 @@ static usbd_respond
             return usbd_fail;
         }
     }
+    if (req->bmRequestType == 0x02 && req->bRequest == 0x01) {
+        return usbd_ack;
+    }
     if(((USB_REQ_RECIPIENT | USB_REQ_TYPE) & req->bmRequestType) ==
            (USB_REQ_DEVICE | USB_REQ_STANDARD) && req->bRequest == USB_STD_GET_DESCRIPTOR) {
         switch(wValueH) {
