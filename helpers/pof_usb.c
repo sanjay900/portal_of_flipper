@@ -26,7 +26,7 @@
 #define POF_USB_TX_MAX_SIZE (POF_USB_EP_IN_SIZE)
 
 #define POF_USB_ACTUAL_OUTPUT_SIZE 0x20
-#define POF_SAMPLE_COUNT 5000
+#define POF_SAMPLE_COUNT 1000
 
 static const struct usb_string_descriptor dev_manuf_desc =
     USB_ARRAY_DESC(0x41, 0x63, 0x74, 0x69, 0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x00);
@@ -95,7 +95,7 @@ struct PoFUsb {
 static PoFUsb* pof_cur = NULL;
 
 static void process_samples(uint8_t* buf, uint8_t len, PoFUsb* pof_usb) {
-    uint8_t* out = &pof_usb->audio_data[pof_usb->current_buff_idx];
+    uint8_t* out = &pof_usb->audio_buffer[pof_usb->current_buff_idx];
     for(size_t i = 0; i < len; i += 2) {
         int16_t int_16 =
             (((int16_t)buf[i] << 8) + (int16_t)buf[i + 1]);
@@ -137,9 +137,12 @@ static void wav_player_dma_isr(void* ctx) {
         // fill first half of buffer
         // if (pof_usb->playing_buff_idx != pof_usb->current_buff_idx) { 
         //     pof_usb->playing_buff_idx = (pof_usb->playing_buff_idx + 1) % POF_SAMPLE_COUNT;
-        //     for (int i = 0; i < pof_usb->half_sample_count; i++) {
-        //         pof_usb->audio_data[i] = pof_usb->audio_buffer[pof_usb->playing_buff_idx][i];
-        //     }
+            for (int i = 0; i < POF_SAMPLE_COUNT/2; i++) {
+                pof_usb->audio_data[i] = pof_usb->audio_buffer[i];
+            }
+            for (int i = POF_SAMPLE_COUNT/2; i < POF_SAMPLE_COUNT; i++) {
+                pof_usb->audio_buffer[i] = 0;
+            }
         // } else {
         //     for (int i = 0; i < pof_usb->half_sample_count; i++) {
         //         pof_usb->audio_data[i] = 0;
@@ -160,6 +163,12 @@ static void wav_player_dma_isr(void* ctx) {
         //         pof_usb->audio_data[i] = 0;
         //     }
         // }
+        for (int i = POF_SAMPLE_COUNT/2; i < POF_SAMPLE_COUNT; i++) {
+            pof_usb->audio_data[i] = pof_usb->audio_buffer[i];
+        }
+        for (int i = 0; i < POF_SAMPLE_COUNT/2; i++) {
+            pof_usb->audio_buffer[i] = 0;
+        }
     }
 }
 
