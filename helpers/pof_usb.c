@@ -181,6 +181,7 @@ static int32_t pof_thread_worker(void* context) {
         furi_hal_interrupt_set_isr(FuriHalInterruptIdDma1Ch1, wav_player_dma_isr, pof_usb);
 
         wav_player_speaker_start();
+        wav_player_dma_start();
     }
 
     while(true) {
