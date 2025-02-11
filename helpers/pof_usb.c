@@ -94,7 +94,7 @@ struct PoFUsb {
 static PoFUsb* pof_cur = NULL;
 
 static void process_samples(uint8_t* buf, uint8_t len, PoFUsb* pof_usb) {
-    uint8_t* out = &pof_usb->audio_data[pof_usb->current_buff_idx];
+    uint8_t* out = &pof_usb->audio_buffer[pof_usb->current_buff_idx];
     for(size_t i = 0; i < len; i += 2) {
         int16_t int_16 =
             (((int16_t)buf[i] << 8) + (int16_t)buf[i + 1]);
@@ -119,7 +119,12 @@ static void process_samples(uint8_t* buf, uint8_t len, PoFUsb* pof_usb) {
 
         out[i / 2] = int_16 >> 8;
     }
-    pof_usb->current_buff_idx = (pof_usb->current_buff_idx + len) % POF_SAMPLE_COUNT;
+    pof_usb->current_buff_idx += len;
+    if (pof_usb->current_buff_idx >= POF_SAMPLE_COUNT) {
+        wav_player_dma_start();
+        pof_usb->current_buff_idx = 0;
+        return;
+    }
 }
 
 static void wav_player_dma_isr(void* ctx) {
@@ -175,7 +180,6 @@ static int32_t pof_thread_worker(void* context) {
 
         furi_hal_interrupt_set_isr(FuriHalInterruptIdDma1Ch1, wav_player_dma_isr, pof_usb);
 
-        wav_player_dma_start();
         wav_player_speaker_start();
     }
 
