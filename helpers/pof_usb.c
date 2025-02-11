@@ -117,7 +117,7 @@ static void process_samples(uint8_t* buf, uint8_t len, PoFUsb* pof_usb) {
         //     data = 255;
         // }
 
-        out[i / 2] = data >> 8;
+        out[i / 2] = int_16 >> 8;
     }
     pof_usb->current_buff_idx = (pof_usb->current_buff_idx + len) % POF_SAMPLE_COUNT;
 }
