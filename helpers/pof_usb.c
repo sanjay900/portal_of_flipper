@@ -119,10 +119,7 @@ static void process_samples(uint8_t* buf, uint8_t len, PoFUsb* pof_usb) {
 
         out[i / 2] = data;
     }
-    pof_usb->current_buff_idx += len / 2;
-    if (pof_usb->current_buff_idx > POF_SAMPLE_COUNT) {
-        pof_usb->current_buff_idx = 0;
-    }
+    pof_usb->current_buff_idx = (pof_usb->current_buff_idx + 1) % POF_SAMPLE_COUNT;
 
     wav_player_dma_start();
 }
@@ -135,8 +132,8 @@ static void wav_player_dma_isr(void* ctx) {
     if(LL_DMA_IsActiveFlag_HT1(DMA1)) {
         LL_DMA_ClearFlag_HT1(DMA1);
         // fill first half of buffer
-        if (pof_usb->playing_buff_idx < pof_usb->current_buff_idx) { 
-            pof_usb->playing_buff_idx++;
+        if (pof_usb->playing_buff_idx != pof_usb->current_buff_idx) { 
+            pof_usb->playing_buff_idx = (pof_usb->playing_buff_idx + 1) % POF_SAMPLE_COUNT;
             for (int i = 0; i < pof_usb->half_sample_count; i++) {
                 pof_usb->audio_data[i] = pof_usb->audio_buffer[pof_usb->playing_buff_idx][i];
             }
@@ -151,7 +148,7 @@ static void wav_player_dma_isr(void* ctx) {
     if(LL_DMA_IsActiveFlag_TC1(DMA1)) {
         LL_DMA_ClearFlag_TC1(DMA1);
         // fill second half of buffer
-        if (pof_usb->playing_buff_idx < pof_usb->current_buff_idx) { 
+        if (pof_usb->playing_buff_idx != pof_usb->current_buff_idx) { 
             for (int i = pof_usb->half_sample_count; i < pof_usb->sample_count; i++) {
                 pof_usb->audio_data[i] = pof_usb->audio_buffer[pof_usb->playing_buff_idx][i];
             }
