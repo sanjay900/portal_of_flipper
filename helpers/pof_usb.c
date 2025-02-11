@@ -26,7 +26,7 @@
 #define POF_USB_TX_MAX_SIZE (POF_USB_EP_IN_SIZE)
 
 #define POF_USB_ACTUAL_OUTPUT_SIZE 0x20
-#define POF_SAMPLE_COUNT 1000
+#define POF_SAMPLE_COUNT 10000
 
 static const struct usb_string_descriptor dev_manuf_desc =
     USB_ARRAY_DESC(0x41, 0x63, 0x74, 0x69, 0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x00);
@@ -94,7 +94,7 @@ struct PoFUsb {
 static PoFUsb* pof_cur = NULL;
 
 static void process_samples(uint8_t* buf, uint8_t len, PoFUsb* pof_usb) {
-    uint8_t* out = &pof_usb->audio_buffer[pof_usb->current_buff_idx];
+    uint8_t* out = &pof_usb->audio_data[pof_usb->current_buff_idx];
     for(size_t i = 0; i < len; i += 2) {
         int16_t int_16 =
             (((int16_t)buf[i] << 8) + (int16_t)buf[i + 1]);
