@@ -26,7 +26,7 @@
 #define POF_USB_TX_MAX_SIZE (POF_USB_EP_IN_SIZE)
 
 #define POF_USB_ACTUAL_OUTPUT_SIZE 0x20
-#define POF_SAMPLE_COUNT 1000
+#define POF_SAMPLE_COUNT 5000
 
 static const struct usb_string_descriptor dev_manuf_desc =
     USB_ARRAY_DESC(0x41, 0x63, 0x74, 0x69, 0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x00);
@@ -315,14 +315,14 @@ static void pof_usb_deinit(usbd_device* dev) {
 }
 
 static void pof_usb_send(usbd_device* dev, uint8_t* buf, uint16_t len) {
-    // Hide frequent responses
-    if(buf[0] != 'S' && buf[0] != 'J') {
-        FURI_LOG_RAW_D("> ");
-        for(size_t i = 0; i < len; i++) {
-            FURI_LOG_RAW_D("%02x", buf[i]);
-        }
-        FURI_LOG_RAW_D("\r\n");
-    }
+    // // Hide frequent responses
+    // if(buf[0] != 'S' && buf[0] != 'J') {
+    //     FURI_LOG_RAW_D("> ");
+    //     for(size_t i = 0; i < len; i++) {
+    //         FURI_LOG_RAW_D("%02x", buf[i]);
+    //     }
+    //     FURI_LOG_RAW_D("\r\n");
+    // }
     usbd_ep_write(dev, POF_USB_EP_IN, buf, len);
 }
 
