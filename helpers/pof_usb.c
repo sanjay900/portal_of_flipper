@@ -1,5 +1,6 @@
 #include "pof_usb.h"
-
+#include "wav_player_hal.h"
+#include <stm32wbxx_ll_dma.h>
 #define TAG "POF USB"
 
 #define HID_INTERVAL 1
@@ -25,6 +26,7 @@
 #define POF_USB_TX_MAX_SIZE (POF_USB_EP_IN_SIZE)
 
 #define POF_USB_ACTUAL_OUTPUT_SIZE 0x20
+#define POF_SAMPLE_COUNT 1000
 
 static const struct usb_string_descriptor dev_manuf_desc =
     USB_ARRAY_DESC(0x41, 0x63, 0x74, 0x69, 0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x00);
@@ -81,9 +83,85 @@ struct PoFUsb {
     uint8_t data[POF_USB_RX_MAX_SIZE];
 
     uint8_t tx_data[POF_USB_TX_MAX_SIZE];
+    uint8_t audio_data[64];
+    uint8_t audio_buffer[POF_SAMPLE_COUNT][64];
+    uint32_t current_buff_idx;
+    uint32_t playing_buff_idx;
+    uint8_t sample_count;
+    uint8_t half_sample_count;
 };
 
 static PoFUsb* pof_cur = NULL;
+
+static void process_samples(uint8_t* buf, uint8_t len, PoFUsb* pof_usb) {
+    uint8_t* out = pof_usb->audio_buffer[pof_usb->current_buff_idx];
+    for(size_t i = 0; i < len; i += 2) {
+        int16_t int_16 =
+            (((int16_t)buf[i + 1] << 8) + (int16_t)buf[i]);
+
+        float data = ((float)int_16 / 256.0 + 127.0);
+        data -= UINT8_MAX / 2; // to signed
+        data /= UINT8_MAX / 2; // scale -1..1
+
+        // data *= app->volume; // volume
+        data = tanhf(data); // hyperbolic tangent limiter
+
+        data *= UINT8_MAX / 2; // scale -128..127
+        data += UINT8_MAX / 2; // to unsigned
+
+        if(data < 0) {
+            data = 0;
+        }
+
+        if(data > 255) {
+            data = 255;
+        }
+
+        out[i / 2] = data;
+    }
+    pof_usb->current_buff_idx += len / 2;
+    if (pof_usb->current_buff_idx > POF_SAMPLE_COUNT) {
+        pof_usb->current_buff_idx = 0;
+    }
+
+    wav_player_dma_start();
+}
+
+static void wav_player_dma_isr(void* ctx) {
+    PoFUsb* pof_usb = ctx;
+    (void)pof_usb;
+
+    // half of transfer
+    if(LL_DMA_IsActiveFlag_HT1(DMA1)) {
+        LL_DMA_ClearFlag_HT1(DMA1);
+        // fill first half of buffer
+        if (pof_usb->playing_buff_idx < pof_usb->current_buff_idx) { 
+            pof_usb->playing_buff_idx++;
+            for (int i = 0; i < pof_usb->half_sample_count; i++) {
+                pof_usb->audio_data[i] = pof_usb->audio_buffer[pof_usb->playing_buff_idx][i];
+            }
+        } else {
+            for (int i = 0; i < pof_usb->half_sample_count; i++) {
+                pof_usb->audio_data[i] = 0;
+            }
+        }
+    }
+
+    // transfer complete
+    if(LL_DMA_IsActiveFlag_TC1(DMA1)) {
+        LL_DMA_ClearFlag_TC1(DMA1);
+        // fill second half of buffer
+        if (pof_usb->playing_buff_idx < pof_usb->current_buff_idx) { 
+            for (int i = pof_usb->half_sample_count; i < pof_usb->sample_count; i++) {
+                pof_usb->audio_data[i] = pof_usb->audio_buffer[pof_usb->playing_buff_idx][i];
+            }
+        } else {
+            for (int i = 0; i < pof_usb->half_sample_count; i++) {
+                pof_usb->audio_data[i] = 0;
+            }
+        }
+    }
+}
 
 static int32_t pof_thread_worker(void* context) {
     PoFUsb* pof_usb = context;
@@ -94,6 +172,16 @@ static int32_t pof_thread_worker(void* context) {
     uint32_t len_data = 0;
     uint8_t tx_data[POF_USB_TX_MAX_SIZE] = {0};
     uint32_t timeout = 100; // FuriWaitForever; //ms
+    pof_usb->sample_count = pof_usb->virtual_portal->type == PoFXbox360 ? 30 : 64;
+    pof_usb->half_sample_count = pof_usb->sample_count / 2;
+    if(furi_hal_speaker_acquire(1000)) {
+        wav_player_speaker_init(8000);
+        wav_player_dma_init((uint32_t)pof_usb->audio_data, pof_usb->sample_count);
+
+        furi_hal_interrupt_set_isr(FuriHalInterruptIdDma1Ch1, wav_player_dma_isr, pof_usb);
+
+        wav_player_speaker_start();
+    }
 
     while(true) {
         uint32_t flags = furi_thread_flags_wait(EventAll, FuriFlagWaitAny, timeout);
@@ -114,18 +202,11 @@ static int32_t pof_thread_worker(void* context) {
                         tx_data[1] = 0x14;
                         pof_usb_send(dev, tx_data, POF_USB_ACTUAL_OUTPUT_SIZE);
                     }
-                } else if(len_data > 0) {
-                    // 360 audio packets start with 0b 17
-                    // we would just process the audio samples as buf + 2 for x360 and buf for hid.
-                    // https://github.com/xMasterX/all-the-plugins/blob/dev/base_pack/wav_player/wav_player_hal.c
-                    /*
-                    FURI_LOG_RAW_I("pof_usb_receive: ");
-                    for(uint32_t i = 0; i < len_data; i++) {
-                        FURI_LOG_RAW_I("%02x", buf[i]);
-                    }
-                    FURI_LOG_RAW_I("\r\n");
-                    */
-                }  
+                } else if(len_data > 32 && virtual_portal->type == PoFHID) {
+                   process_samples(buf, len_data, pof_usb);
+                } else if (len_data > 0 && pof_usb->virtual_portal->type == PoFXbox360 && buf[0] == 0x0b && buf[1] == 0x17) {
+                   process_samples(buf+2, len_data-2, pof_usb);
+                }
             }
             // hid portals use control transfers
             if(pof_usb->virtual_portal->type == PoFHID && pof_usb->dataAvailable > 0 ) {
