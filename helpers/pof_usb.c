@@ -78,6 +78,7 @@ struct PoFUsb {
 
     bool tx_complete;
     bool tx_immediate;
+    bool playing;
 
     uint8_t dataAvailable;
     uint8_t data[POF_USB_RX_MAX_SIZE];
@@ -120,8 +121,13 @@ static void process_samples(uint8_t* buf, uint8_t len, PoFUsb* pof_usb) {
         out[i / 2] = int_16 >> 8;
     }
     pof_usb->current_buff_idx += len;
-    if (pof_usb->current_buff_idx >= POF_SAMPLE_COUNT) {
+    if (pof_usb->current_buff_idx >= POF_SAMPLE_COUNT / 2 && !pof_usb->playing) {
+        pof_usb->playing = true;
         wav_player_dma_start();
+        return;
+    }
+    if (pof_usb->current_buff_idx >= POF_SAMPLE_COUNT) {
+        pof_usb->playing = false;
         pof_usb->current_buff_idx = 0;
         return;
     }
