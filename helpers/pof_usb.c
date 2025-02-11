@@ -120,8 +120,6 @@ static void process_samples(uint8_t* buf, uint8_t len, PoFUsb* pof_usb) {
         out[i / 2] = data;
     }
     pof_usb->current_buff_idx = (pof_usb->current_buff_idx + 1) % POF_SAMPLE_COUNT;
-
-    wav_player_dma_start();
 }
 
 static void wav_player_dma_isr(void* ctx) {
@@ -177,6 +175,7 @@ static int32_t pof_thread_worker(void* context) {
 
         furi_hal_interrupt_set_isr(FuriHalInterruptIdDma1Ch1, wav_player_dma_isr, pof_usb);
 
+        wav_player_dma_start();
         wav_player_speaker_start();
     }
 
