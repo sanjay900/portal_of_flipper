@@ -260,7 +260,9 @@ static int32_t pof_thread_worker(void* context) {
             }
         }
     }
-
+    wav_player_speaker_stop();
+    wav_player_dma_stop();
+    furi_hal_speaker_release();
     return 0;
 }
 
