@@ -94,40 +94,40 @@ struct PoFUsb {
 
 static PoFUsb* pof_cur = NULL;
 
-static void process_samples(uint8_t* buf, uint8_t len, PoFUsb* pof_usb) {
-    uint8_t* out = &pof_usb->audio_data[pof_usb->current_buff_idx];
-    for(size_t i = 0; i < len; i += 2) {
-        int16_t int_16 =
-            (((int16_t)buf[i+1] << 8) + (int16_t)buf[i]);
+// static void process_samples(uint8_t* buf, uint8_t len, PoFUsb* pof_usb) {
+//     uint8_t* out = &pof_usb->audio_data[pof_usb->current_buff_idx];
+//     for(size_t i = 0; i < len; i += 2) {
+//         int16_t int_16 =
+//             (((int16_t)buf[i+1] << 8) + (int16_t)buf[i]);
 
-        // float data = ((float)int_16 / 256.0 + 127.0);
-        // data -= UINT8_MAX / 2; // to signed
-        // data /= UINT8_MAX / 2; // scale -1..1
+//         // float data = ((float)int_16 / 256.0 + 127.0);
+//         // data -= UINT8_MAX / 2; // to signed
+//         // data /= UINT8_MAX / 2; // scale -1..1
 
-        // // data *= app->volume; // volume
-        // data = tanhf(data); // hyperbolic tangent limiter
+//         // // data *= app->volume; // volume
+//         // data = tanhf(data); // hyperbolic tangent limiter
 
-        // data *= UINT8_MAX / 2; // scale -128..127
-        // data += UINT8_MAX / 2; // to unsigned
+//         // data *= UINT8_MAX / 2; // scale -128..127
+//         // data += UINT8_MAX / 2; // to unsigned
 
-        // if(data < 0) {
-        //     data = 0;
-        // }
+//         // if(data < 0) {
+//         //     data = 0;
+//         // }
 
-        // if(data > 255) {
-        //     data = 255;
-        // }
+//         // if(data > 255) {
+//         //     data = 255;
+//         // }
 
-        out[i / 2] = int_16 >> 8;
-    }
-    pof_usb->current_buff_idx += len;
-    if (pof_usb->current_buff_idx >= POF_SAMPLE_COUNT && !pof_usb->playing) {
-        pof_usb->current_buff_idx = 0;
-        pof_usb->playing = true;
-        wav_player_dma_start();
-        return;
-    }
-}
+//         out[i / 2] = int_16 >> 8;
+//     }
+//     pof_usb->current_buff_idx += len;
+//     if (pof_usb->current_buff_idx >= POF_SAMPLE_COUNT && !pof_usb->playing) {
+//         pof_usb->current_buff_idx = 0;
+//         pof_usb->playing = true;
+//         wav_player_dma_start();
+//         return;
+//     }
+// }
 
 static void wav_player_dma_isr(void* ctx) {
     PoFUsb* pof_usb = ctx;
