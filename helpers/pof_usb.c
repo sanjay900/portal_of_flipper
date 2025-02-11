@@ -83,8 +83,8 @@ struct PoFUsb {
     uint8_t data[POF_USB_RX_MAX_SIZE];
 
     uint8_t tx_data[POF_USB_TX_MAX_SIZE];
-    uint8_t audio_data[64];
-    uint8_t audio_buffer[POF_SAMPLE_COUNT][64];
+    uint8_t audio_data[POF_SAMPLE_COUNT];
+    uint8_t audio_buffer[POF_SAMPLE_COUNT];
     uint32_t current_buff_idx;
     uint32_t playing_buff_idx;
     uint8_t sample_count;
@@ -94,10 +94,10 @@ struct PoFUsb {
 static PoFUsb* pof_cur = NULL;
 
 static void process_samples(uint8_t* buf, uint8_t len, PoFUsb* pof_usb) {
-    uint8_t* out = pof_usb->audio_buffer[pof_usb->current_buff_idx];
+    uint8_t* out = &pof_usb->audio_buffer[pof_usb->current_buff_idx];
     for(size_t i = 0; i < len; i += 2) {
         int16_t int_16 =
-            (((int16_t)buf[i] << 8) + (int16_t)buf[i + 1]);
+            (((int16_t)buf[i + 1] << 8) + (int16_t)buf[i]);
 
         float data = ((float)int_16 / 256.0 + 127.0);
         data -= UINT8_MAX / 2; // to signed
@@ -119,7 +119,7 @@ static void process_samples(uint8_t* buf, uint8_t len, PoFUsb* pof_usb) {
 
         out[i / 2] = data;
     }
-    pof_usb->current_buff_idx = (pof_usb->current_buff_idx + 1) % POF_SAMPLE_COUNT;
+    pof_usb->current_buff_idx = (pof_usb->current_buff_idx + len) % POF_SAMPLE_COUNT;
 }
 
 static void wav_player_dma_isr(void* ctx) {
@@ -130,31 +130,31 @@ static void wav_player_dma_isr(void* ctx) {
     if(LL_DMA_IsActiveFlag_HT1(DMA1)) {
         LL_DMA_ClearFlag_HT1(DMA1);
         // fill first half of buffer
-        if (pof_usb->playing_buff_idx != pof_usb->current_buff_idx) { 
-            pof_usb->playing_buff_idx = (pof_usb->playing_buff_idx + 1) % POF_SAMPLE_COUNT;
-            for (int i = 0; i < pof_usb->half_sample_count; i++) {
-                pof_usb->audio_data[i] = pof_usb->audio_buffer[pof_usb->playing_buff_idx][i];
-            }
-        } else {
-            for (int i = 0; i < pof_usb->half_sample_count; i++) {
-                pof_usb->audio_data[i] = 0;
-            }
-        }
+        // if (pof_usb->playing_buff_idx != pof_usb->current_buff_idx) { 
+        //     pof_usb->playing_buff_idx = (pof_usb->playing_buff_idx + 1) % POF_SAMPLE_COUNT;
+        //     for (int i = 0; i < pof_usb->half_sample_count; i++) {
+        //         pof_usb->audio_data[i] = pof_usb->audio_buffer[pof_usb->playing_buff_idx][i];
+        //     }
+        // } else {
+        //     for (int i = 0; i < pof_usb->half_sample_count; i++) {
+        //         pof_usb->audio_data[i] = 0;
+        //     }
+        // }
     }
 
     // transfer complete
     if(LL_DMA_IsActiveFlag_TC1(DMA1)) {
         LL_DMA_ClearFlag_TC1(DMA1);
         // fill second half of buffer
-        if (pof_usb->playing_buff_idx != pof_usb->current_buff_idx) { 
-            for (int i = pof_usb->half_sample_count; i < pof_usb->sample_count; i++) {
-                pof_usb->audio_data[i] = pof_usb->audio_buffer[pof_usb->playing_buff_idx][i];
-            }
-        } else {
-            for (int i = 0; i < pof_usb->half_sample_count; i++) {
-                pof_usb->audio_data[i] = 0;
-            }
-        }
+        // if (pof_usb->playing_buff_idx != pof_usb->current_buff_idx) { 
+        //     for (int i = pof_usb->half_sample_count; i < pof_usb->sample_count; i++) {
+        //         pof_usb->audio_data[i] = pof_usb->audio_buffer[pof_usb->playing_buff_idx][i];
+        //     }
+        // } else {
+        //     for (int i = 0; i < pof_usb->half_sample_count; i++) {
+        //         pof_usb->audio_data[i] = 0;
+        //     }
+        // }
     }
 }
 
@@ -171,7 +171,7 @@ static int32_t pof_thread_worker(void* context) {
     pof_usb->half_sample_count = pof_usb->sample_count / 2;
     if(furi_hal_speaker_acquire(1000)) {
         wav_player_speaker_init(8000);
-        wav_player_dma_init((uint32_t)pof_usb->audio_data, pof_usb->sample_count);
+        wav_player_dma_init((uint32_t)pof_usb->audio_data, POF_SAMPLE_COUNT);
 
         furi_hal_interrupt_set_isr(FuriHalInterruptIdDma1Ch1, wav_player_dma_isr, pof_usb);
 
