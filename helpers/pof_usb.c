@@ -97,7 +97,7 @@ static void process_samples(uint8_t* buf, uint8_t len, PoFUsb* pof_usb) {
     uint8_t* out = pof_usb->audio_buffer[pof_usb->current_buff_idx];
     for(size_t i = 0; i < len; i += 2) {
         int16_t int_16 =
-            (((int16_t)buf[i + 1] << 8) + (int16_t)buf[i]);
+            (((int16_t)buf[i] << 8) + (int16_t)buf[i + 1]);
 
         float data = ((float)int_16 / 256.0 + 127.0);
         data -= UINT8_MAX / 2; // to signed
