@@ -6,7 +6,7 @@
 extern "C" {
 #endif
 
-void wav_player_speaker_init();
+void wav_player_speaker_init(uint32_t sample_rate);
 
 void wav_player_speaker_start();
 
