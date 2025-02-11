@@ -99,25 +99,25 @@ static void process_samples(uint8_t* buf, uint8_t len, PoFUsb* pof_usb) {
         int16_t int_16 =
             (((int16_t)buf[i + 1] << 8) + (int16_t)buf[i]);
 
-        float data = ((float)int_16 / 256.0 + 127.0);
-        data -= UINT8_MAX / 2; // to signed
-        data /= UINT8_MAX / 2; // scale -1..1
+        // float data = ((float)int_16 / 256.0 + 127.0);
+        // data -= UINT8_MAX / 2; // to signed
+        // data /= UINT8_MAX / 2; // scale -1..1
 
-        // data *= app->volume; // volume
-        data = tanhf(data); // hyperbolic tangent limiter
+        // // data *= app->volume; // volume
+        // data = tanhf(data); // hyperbolic tangent limiter
 
-        data *= UINT8_MAX / 2; // scale -128..127
-        data += UINT8_MAX / 2; // to unsigned
+        // data *= UINT8_MAX / 2; // scale -128..127
+        // data += UINT8_MAX / 2; // to unsigned
 
-        if(data < 0) {
-            data = 0;
-        }
+        // if(data < 0) {
+        //     data = 0;
+        // }
 
-        if(data > 255) {
-            data = 255;
-        }
+        // if(data > 255) {
+        //     data = 255;
+        // }
 
-        out[i / 2] = data;
+        out[i / 2] = data >> 8;
     }
     pof_usb->current_buff_idx = (pof_usb->current_buff_idx + len) % POF_SAMPLE_COUNT;
 }
