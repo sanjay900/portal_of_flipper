@@ -214,9 +214,9 @@ static int32_t pof_thread_worker(void* context) {
                         pof_usb_send(dev, tx_data, POF_USB_ACTUAL_OUTPUT_SIZE);
                     }
                 } else if(len_data > 32 && virtual_portal->type == PoFHID) {
-                   process_samples(buf, len_data, pof_usb);
+                //    process_samples(buf, len_data, pof_usb);
                 } else if (len_data > 0 && pof_usb->virtual_portal->type == PoFXbox360 && buf[0] == 0x0b && buf[1] == 0x17) {
-                   process_samples(buf+2, len_data-2, pof_usb);
+                //    process_samples(buf+2, len_data-2, pof_usb);
                 }
             }
             // hid portals use control transfers
