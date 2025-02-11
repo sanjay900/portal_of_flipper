@@ -94,40 +94,40 @@ struct PoFUsb {
 
 static PoFUsb* pof_cur = NULL;
 
-// static void process_samples(uint8_t* buf, uint8_t len, PoFUsb* pof_usb) {
-//     uint8_t* out = &pof_usb->audio_data[pof_usb->current_buff_idx];
-//     for(size_t i = 0; i < len; i += 2) {
-//         int16_t int_16 =
-//             (((int16_t)buf[i+1] << 8) + (int16_t)buf[i]);
+static void process_samples(uint8_t* buf, uint8_t len, PoFUsb* pof_usb) {
+    uint8_t* out = &pof_usb->audio_data[pof_usb->current_buff_idx];
+    for(size_t i = 0; i < len; i += 2) {
+        int16_t int_16 =
+            (((int16_t)buf[i+1] << 8) + (int16_t)buf[i]);
 
-//         // float data = ((float)int_16 / 256.0 + 127.0);
-//         // data -= UINT8_MAX / 2; // to signed
-//         // data /= UINT8_MAX / 2; // scale -1..1
+        // float data = ((float)int_16 / 256.0 + 127.0);
+        // data -= UINT8_MAX / 2; // to signed
+        // data /= UINT8_MAX / 2; // scale -1..1
 
-//         // // data *= app->volume; // volume
-//         // data = tanhf(data); // hyperbolic tangent limiter
+        // // data *= app->volume; // volume
+        // data = tanhf(data); // hyperbolic tangent limiter
 
-//         // data *= UINT8_MAX / 2; // scale -128..127
-//         // data += UINT8_MAX / 2; // to unsigned
+        // data *= UINT8_MAX / 2; // scale -128..127
+        // data += UINT8_MAX / 2; // to unsigned
 
-//         // if(data < 0) {
-//         //     data = 0;
-//         // }
+        // if(data < 0) {
+        //     data = 0;
+        // }
 
-//         // if(data > 255) {
-//         //     data = 255;
-//         // }
+        // if(data > 255) {
+        //     data = 255;
+        // }
 
-//         out[i / 2] = int_16 >> 8;
-//     }
-//     pof_usb->current_buff_idx += len;
-//     if (pof_usb->current_buff_idx >= POF_SAMPLE_COUNT && !pof_usb->playing) {
-//         pof_usb->current_buff_idx = 0;
-//         pof_usb->playing = true;
-//         wav_player_dma_start();
-//         return;
-//     }
-// }
+        out[i / 2] = int_16 >> 8;
+    }
+    pof_usb->current_buff_idx += len;
+    if (pof_usb->current_buff_idx >= POF_SAMPLE_COUNT && !pof_usb->playing) {
+        pof_usb->current_buff_idx = 0;
+        pof_usb->playing = true;
+        wav_player_dma_start();
+        return;
+    }
+}
 
 static void wav_player_dma_isr(void* ctx) {
     PoFUsb* pof_usb = ctx;
@@ -216,7 +216,7 @@ static int32_t pof_thread_worker(void* context) {
                 } else if(len_data > 32 && virtual_portal->type == PoFHID) {
                 //    process_samples(buf, len_data, pof_usb);
                 } else if (len_data > 0 && pof_usb->virtual_portal->type == PoFXbox360 && buf[0] == 0x0b && buf[1] == 0x17) {
-                //    process_samples(buf+2, len_data-2, pof_usb);
+                   process_samples(buf+2, len_data-2, pof_usb);
                 }
             }
             // hid portals use control transfers
@@ -311,7 +311,7 @@ static void pof_usb_deinit(usbd_device* dev) {
     }
     pof_cur = NULL;
 
-    furi_assert(pof_usb->thread);
+    // furi_assert(pof_usb->thread);
     furi_thread_flags_set(furi_thread_get_id(pof_usb->thread), EventExit);
     furi_thread_join(pof_usb->thread);
     furi_thread_free(pof_usb->thread);
