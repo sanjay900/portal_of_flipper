@@ -114,9 +114,7 @@ static int32_t pof_thread_worker(void* context) {
                         tx_data[1] = 0x14;
                         pof_usb_send(dev, tx_data, POF_USB_ACTUAL_OUTPUT_SIZE);
                     }
-                } else if(len_data > 0) {
-                    // 360 audio packets start with 0b 17
-                    // we would just process the audio samples as buf + 2 for x360 and buf for hid.
+                } else if(len_data > 32 && virtual_portal->type == PoFHID) {
                     // https://github.com/xMasterX/all-the-plugins/blob/dev/base_pack/wav_player/wav_player_hal.c
                     /*
                     FURI_LOG_RAW_I("pof_usb_receive: ");
@@ -125,7 +123,16 @@ static int32_t pof_thread_worker(void* context) {
                     }
                     FURI_LOG_RAW_I("\r\n");
                     */
-                }  
+                } else if (len_data > 0 && pof_usb->virtual_portal->type == PoFXbox360 && buf[0] == 0x0b && buf[1] == 0x17) {
+                    // 360 audio packets start with 0b 17, samples start after the two byte header
+                    /*
+                    FURI_LOG_RAW_I("pof_usb_receive: ");
+                    for(uint32_t i = 2; i < len_data; i++) {
+                        FURI_LOG_RAW_I("%02x", buf[i]);
+                    }
+                    FURI_LOG_RAW_I("\r\n");
+                    */
+                }
             }
             // hid portals use control transfers
             if(pof_usb->virtual_portal->type == PoFHID && pof_usb->dataAvailable > 0 ) {
